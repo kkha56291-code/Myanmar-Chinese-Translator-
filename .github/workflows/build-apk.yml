@@ -1,0 +1,49 @@
+
+name: Build Android APK
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract project ZIP
+        run: |
+          mkdir project
+          unzip -q *.zip -d project
+          PROJECT_DIR=$(dirname "$(find project -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build APK
+        run: gradle -p "$PROJECT_DIR" assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Myanmar-Chinese-Translator-APK
+          path: project/**/build/outputs/apk/debug/*.apk
